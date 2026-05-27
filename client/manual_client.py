@@ -1,7 +1,8 @@
 import socket
 from messsagetypes import MessageType
 
-HOST = "127.0.0.1"   # server IP
+# HOST = "127.0.0.1"   # server IP
+HOST = "192.168.2.8"
 PORT = 10001         # server port
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
