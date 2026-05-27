@@ -7,7 +7,7 @@
 
 
 int main(int argc, char* argv[]) {
-    cxxopts::Options options("MyProgram", "Example program");
+    cxxopts::Options options("raw-camera", "Serves raw camera data");
 
     options.add_options()
         ("h,help", "Print usage")
