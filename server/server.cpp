@@ -8,6 +8,15 @@
 #include "server.h"
 #include "constants.h"
 
+#include <libcamera/libcamera.h>
+#include <libcamera/control_ids.h>
+
+#include <memory>
+#include <condition_variable>
+#include <mutex>
+
+using namespace libcamera;
+
 int run_server(const int port)
 {
 
