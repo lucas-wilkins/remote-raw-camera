@@ -1,4 +1,6 @@
-git fetch
+#!/bin/bash
 
-make
+git pull
+
+cmake --build
 

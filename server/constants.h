@@ -3,9 +3,10 @@
 #ifndef SERVER_MESSAGETYPES_H
 #define SERVER_MESSAGETYPES_H
 
-#define DEFAULT_PORT 10001
+#define DEFAULT_CONTROL_PORT 10001
+#define DEFAULT_DATA_PORT 10002
 
-enum MessageType
+enum ControlMessageType
 {
     STATUS,
     ACQUIRE,

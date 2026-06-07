@@ -1,20 +1,59 @@
 
+#include "ControlServer.h"
+#include "DataServer.h"
 
+#include "constants.h"
+
+#include <atomic>
 #include <iostream>
+#include <thread>
 #include <cstring>
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#include "server.h"
-#include "constants.h"
-
-int run_server(const int port)
+ControlServer::ControlServer(const int control_port)
 {
+    port = control_port;
+}
+
+ControlServer::~ControlServer() {
+    stop();
+}
+
+void ControlServer::start() {
+    bool expected = false;
+    if (!running_.compare_exchange_strong(expected, true)) {
+        return; // already running
+    }
+
+    worker_ = std::thread(&ControlServer::run, this);
+}
+
+void ControlServer::stop() {
+    if (!running_) {
+        return;
+    }
+
+    running_ = false;
+
+    if (worker_.joinable()) {
+        worker_.join();
+    }
+}
+
+void ControlServer::bind_data_server(DataServer* data_server)
+{
+    data_server_ = data_server;
+}
+
+
+void ControlServer::run() {
+    std::cout << "Control server starting\n";
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("socket");
-        return 1;
+        return;
     }
 
     sockaddr_in addr{};
@@ -24,12 +63,12 @@ int run_server(const int port)
 
     if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind");
-        return 1;
+        return;
     }
 
     if (listen(server_fd, 5) < 0) {
         perror("listen");
-        return 1;
+        return;
     }
 
     sockaddr_in client{};
@@ -37,14 +76,14 @@ int run_server(const int port)
 
     char buffer[1024];
 
-    while (true) {
-
+    while (running_)
+    {
         std::cout << "TCP server listening on port " << port << std::endl;
 
         int client_fd = accept(server_fd, (sockaddr*)&client, &client_len);
         if (client_fd < 0) {
             perror("accept");
-            return 1;
+            return;
         }
 
         std::cout << "Client Connected" << std::endl;
@@ -57,25 +96,25 @@ int run_server(const int port)
 
             switch (message_type)
             {
-            case MessageType::STATUS:
+            case ControlMessageType::STATUS:
                 msg = "Status requested";
 
                 write(client_fd, msg.data(), msg.size());
                 break;
 
-            case MessageType::ACQUIRE:
+            case ControlMessageType::ACQUIRE:
                 msg = "Acquire";
 
                 write(client_fd, msg.data(), msg.size());
                 break;
 
-            case MessageType::SET_EXPOSURE:
+            case ControlMessageType::SET_EXPOSURE:
                 msg = "Set Exposure";
 
                 write(client_fd, msg.data(), msg.size());
                 break;
 
-            case MessageType::SET_GAIN:
+            case ControlMessageType::SET_GAIN:
                 msg = "Set Gain";
 
                 write(client_fd, msg.data(), msg.size());
@@ -94,6 +133,6 @@ int run_server(const int port)
         close(client_fd);
     }
 
-    close(server_fd);
-    return 0;
+    std::cout << "Control server stopped\n";
+
 }

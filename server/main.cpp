@@ -3,7 +3,8 @@
 #include "lib/cxxopts.hpp"
 
 #include "constants.h"
-#include "server.h"
+#include "ControlServer.h"
+#include "DataServer.h"
 
 
 int main(int argc, char* argv[]) {
@@ -11,11 +12,14 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("h,help", "Print usage")
-        ("port", "TCP Port to listen on", cxxopts::value<int>()->default_value(std::to_string(DEFAULT_PORT)));
+        ("c,control", "TCP port for control signals",
+            cxxopts::value<int>()->default_value(std::to_string(DEFAULT_CONTROL_PORT)))
+        ("d,data", "TCP port for data",
+            cxxopts::value<int>()->default_value(std::to_string(DEFAULT_DATA_PORT)));
 
     auto result = options.parse(argc, argv);
 
-    options.parse_positional({"port"});
+    options.parse_positional({"control", "data"});
 
     // Help
     if (result.count("help")) {
@@ -24,8 +28,20 @@ int main(int argc, char* argv[]) {
     }
 
     // Get the positional integer (uses default if not provided)
-    int port = result["port"].as<int>();
+    int control_port = result["control"].as<int>();
+    int data_port = result["data"].as<int>();
 
-    return run_server(port);
+    ControlServer* control_server = new ControlServer(control_port);
+    DataServer* data_server = new DataServer(data_port);
 
+    data_server->bind_control_server(control_server);
+    control_server->bind_data_server(data_server);
+
+    control_server->start();
+    data_server->start();
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    control_server->stop();
+    data_server->stop();
 }
