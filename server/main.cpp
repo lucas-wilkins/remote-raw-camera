@@ -1,10 +1,10 @@
 #include <iostream>
+#include <thread>
 
 #include "lib/cxxopts.hpp"
 
 #include "constants.h"
-#include "ControlServer.h"
-#include "DataServer.h"
+#include "servers.h"
 
 
 int main(int argc, char* argv[]) {
@@ -31,17 +31,25 @@ int main(int argc, char* argv[]) {
     int control_port = result["control"].as<int>();
     int data_port = result["data"].as<int>();
 
-    ControlServer* control_server = new ControlServer(control_port);
-    DataServer* data_server = new DataServer(data_port);
 
-    data_server->bind_control_server(control_server);
-    control_server->bind_data_server(data_server);
+    ControlServer control_server = ControlServer(control_port);
+    DataServer data_server = DataServer(data_port);
 
-    control_server->start();
-    data_server->start();
+    // data_server->bind_control_server(control_server);
+    // control_server->bind_data_server(data_server);
+    //
+    // control_server->start();
+    // data_server->start();
+    //
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
+    //
+    // control_server->stop();
+    // data_server->stop();
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    //bufferSystemTest();
 
-    control_server->stop();
-    data_server->stop();
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }

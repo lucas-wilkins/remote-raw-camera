@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 
 #include "server.h"
-#include "constants.h"
+#include "../constants.h"
 
 int run_server(const int port)
 {

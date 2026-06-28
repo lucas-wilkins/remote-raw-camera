@@ -17,6 +17,7 @@ public:
     void stop();
 
     void bind_data_server(DataServer* data_server);
+    void process_message(int message, int client_fd);
 
 private:
     void run();

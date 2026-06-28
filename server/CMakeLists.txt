@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.1)
 project(server)
 
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #find_package(PkgConfig REQUIRED)
 #pkg_check_modules(LIBCAMERA REQUIRED libcamera)
@@ -9,10 +11,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(server
         main.cpp
         constants.h
-        ControlServer.cpp
-        ControlServer.h
-        DataServer.cpp
-        DataServer.h
+        servers.h
 )
 
 #

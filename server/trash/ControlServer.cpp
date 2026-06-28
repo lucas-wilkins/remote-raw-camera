@@ -1,8 +1,8 @@
 
 #include "ControlServer.h"
-#include "DataServer.h"
+#include "../DataServer.h"
 
-#include "constants.h"
+#include "../constants.h"
 
 #include <atomic>
 #include <iostream>
@@ -44,6 +44,51 @@ void ControlServer::stop() {
 void ControlServer::bind_data_server(DataServer* data_server)
 {
     data_server_ = data_server;
+}
+
+void ControlServer::process_message(const int message, const int client_fd)
+{
+
+    std::string response;
+
+    if (data_server_ == nullptr)
+    {
+        response = "ERROR: Data server not set up";
+    }
+    else
+    {
+        switch (message)
+        {
+        case ControlMessageType::STATUS:
+            response = "Status requested";
+
+            write(client_fd, response.data(), response.size());
+            break;
+
+        case ControlMessageType::CAPTURE:
+            response = "Acquire";
+
+            write(client_fd, response.data(), response.size());
+            break;
+
+        case ControlMessageType::SET_EXPOSURE:
+            response = "Set Exposure";
+
+            write(client_fd, response.data(), response.size());
+            break;
+
+        case ControlMessageType::SET_GAIN:
+            response = "Set Gain";
+
+            write(client_fd, response.data(), response.size());
+            break;
+
+        default:
+            response = "Unknown Command";
+        }
+    }
+
+    std::cout << response << std::endl;
 }
 
 
@@ -90,41 +135,7 @@ void ControlServer::run() {
 
         ssize_t n;
         while ((n = read(client_fd, buffer, sizeof(buffer))) > 0) {
-            int message_type = buffer[0];
-
-            std::string msg;
-
-            switch (message_type)
-            {
-            case ControlMessageType::STATUS:
-                msg = "Status requested";
-
-                write(client_fd, msg.data(), msg.size());
-                break;
-
-            case ControlMessageType::ACQUIRE:
-                msg = "Acquire";
-
-                write(client_fd, msg.data(), msg.size());
-                break;
-
-            case ControlMessageType::SET_EXPOSURE:
-                msg = "Set Exposure";
-
-                write(client_fd, msg.data(), msg.size());
-                break;
-
-            case ControlMessageType::SET_GAIN:
-                msg = "Set Gain";
-
-                write(client_fd, msg.data(), msg.size());
-                break;
-
-            default:
-                msg = "Unknown Command";
-            }
-
-            std::cout << msg << std::endl;
+            process_message(buffer[0], client_fd);
         }
 
         std::cout << "Client Disconnected" << std::endl;

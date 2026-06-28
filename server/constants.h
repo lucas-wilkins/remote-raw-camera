@@ -9,7 +9,7 @@
 enum ControlMessageType
 {
     STATUS,
-    ACQUIRE,
+    CAPTURE,
     SET_EXPOSURE,
     SET_GAIN
 };

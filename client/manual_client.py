@@ -1,12 +1,29 @@
 import socket
+import time
+
 from messsagetypes import MessageType
 
-# HOST = "127.0.0.1"   # server IP
-HOST = "192.168.2.8"
-PORT = 10001         # server port
+from settings import Settings
+import threading
+
+settings = Settings()
+
+def data_loop():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((settings.address, settings.data_port))
+
+        while True:
+            data = s.recv(1024)
+            if len(data) > 0:
+                print(data.decode())
+
+            time.sleep(0.01)
+
+t = threading.Thread(target=data_loop)
+t.start()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+    s.connect((settings.address, settings.control_port))
     while True:
 
         # Get the message type
