@@ -5,7 +5,22 @@
 
 #include "constants.h"
 #include "servers.h"
+#include "rc_utils.h"
 
+#define BUFFER_SIZE 4
+
+class IntDataServer : DataServer<int, BUFFER_SIZE>
+{
+public:
+    IntDataServer(int port, BufferSystem<int, BUFFER_SIZE>* data) : DataServer<int, BUFFER_SIZE>(port, data) {};
+    ~IntDataServer() = default;
+
+    void sendData(int client_fd, int data) override
+    {
+        std::string s = std::format("Sending from buffer {}", data);
+        write_all(client_fd, s);
+    }
+};
 
 int main(int argc, char* argv[]) {
     cxxopts::Options options("raw-camera", "Serves raw camera data");
@@ -31,9 +46,28 @@ int main(int argc, char* argv[]) {
     int control_port = result["control"].as<int>();
     int data_port = result["data"].as<int>();
 
+    /* Initialise buffers */
+    int buffer_data[BUFFER_SIZE];
+    for (int i=0; i<BUFFER_SIZE; i++)
+    {
+        buffer_data[i] = i+1;
+    }
+
+    /* Set up systems */
+    BufferSystem<int, BUFFER_SIZE>* buffer_system = new BufferSystem<int, 4>(buffer_data);
 
     ControlServer control_server = ControlServer(control_port);
-    DataServer data_server = DataServer(data_port);
+    IntDataServer data_server = IntDataServer(data_port, buffer_system);
+
+    std::function<std::string(void)> capture_callback = [buffer_system]()
+    {
+        buffer_system->pushStart();
+        buffer_system->pushFinish();
+        return "Dummy Capture Done";
+    };
+
+    control_server.setCaptureCallback(capture_callback);
+
 
     // data_server->bind_control_server(control_server);
     // control_server->bind_data_server(data_server);

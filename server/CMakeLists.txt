@@ -10,6 +10,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(server
         main.cpp
+        rc_utils.cpp
+        rc_utils.h
         constants.h
         servers.h
 )

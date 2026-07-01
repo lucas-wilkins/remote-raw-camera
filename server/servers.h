@@ -17,6 +17,8 @@
 #include <arpa/inet.h>
 #include <format>
 
+#include "rc_utils.h"
+
 
 /*
  * Buffer system
@@ -44,6 +46,7 @@ private:
 
     std::mutex mtxSizeChange;
     std::condition_variable cvHasData;
+
 };
 
 template <typename T, std::size_t N>
@@ -154,10 +157,14 @@ private:
     void stop();
     void run();
 
-    std::atomic<bool> running_{false};
     std::thread worker_;
 
     bool connected_ = false;
+
+
+protected:
+    std::atomic<bool> running_{false};
+
 };
 
 inline TCPServer::TCPServer(int port)
@@ -245,7 +252,7 @@ inline void TCPServer::run() {
 }
 
 /*
- * Data Server
+ * Control Server
  */
 
 
@@ -256,8 +263,8 @@ public:
     using TCPServer::TCPServer;
 
     void mainLoop(int client_fd) override;
-    void setExposureCallback(std::function<std::string(long)> callback);
-    void setGainCallback(std::function<std::string(long)> callback);
+    void setExposureCallback(std::function<std::string(int64_t)> callback);
+    void setGainCallback(std::function<std::string(float)> callback);
     void setCaptureCallback(std::function<std::string()> callback);
     void setStatusCallback(std::function<std::string()> callback);
 
@@ -266,12 +273,12 @@ private:
 
     char buffer[1024];
 
-    std::function<std::string(long)> exposureCallback_ = [](long exposure)
+    std::function<std::string(long)> exposureCallback_ = [](int64_t exposure)
     {
         return std::format("No exposure callback set (attempted to set to {})", exposure);
     };
 
-    std::function<std::string(long)> gainCallback_ = [](long gain)
+    std::function<std::string(float)> gainCallback_ = [](float gain)
     {
         return std::format("No gain callback set (attempted to set to {})", gain);
     };
@@ -288,12 +295,12 @@ private:
 };
 
 
-inline void ControlServer::setExposureCallback(std::function<std::string(long)> callback)
+inline void ControlServer::setExposureCallback(std::function<std::string(int64_t)> callback)
 {
     exposureCallback_ = callback;
 }
 
-inline void ControlServer::setGainCallback(std::function<std::string(long)> callback)
+inline void ControlServer::setGainCallback(std::function<std::string(float)> callback)
 {
     gainCallback_ = callback;
 }
@@ -339,11 +346,29 @@ inline void ControlServer::mainLoop(int client_fd)
                 break;
 
             case ControlMessageType::SET_EXPOSURE:
-                response = exposureCallback_(0); // TODO: Get exposure from message
+                if (n == 9)
+                {
+                    int64_t value = 0;
+                    std::memcpy(&value, &buffer[1], sizeof(value));
+                    response = exposureCallback_(value);
+                } else
+                {
+                    response = "Malformed exposure time, expected 8 bytes";
+                }
                 break;
 
             case ControlMessageType::SET_GAIN:
-                response = gainCallback_(0); // TODO: Get gain from message
+                if (n == 5)
+                {
+                    float value = 0;
+                    std::memcpy(&value, &buffer[1], sizeof(value));
+                    response = gainCallback_(value);
+                } else
+                {
+                    response = "Malformed gain, expected 5 bytes";
+                }
+
+
                 break;
 
             default:
@@ -351,7 +376,7 @@ inline void ControlServer::mainLoop(int client_fd)
             }
         }
 
-        write(client_fd, response.data(), response.size());
+        write_all(client_fd, response);
         std::cout << response << std::endl;
     }
 
@@ -363,16 +388,35 @@ inline void ControlServer::mainLoop(int client_fd)
  * Control Server
  */
 
+template <typename T, std::size_t N>
 class DataServer : public TCPServer
 {
-    using TCPServer::TCPServer;
+public:
+    DataServer(int port, BufferSystem<T, N>* buffer_system);
+
 
     void mainLoop(int client_fd) override;
+    virtual void sendData(int client_fd, T data);
+
+private:
+    BufferSystem<T, N>* buffer_system_;
 };
 
-inline void DataServer::mainLoop(int client_fd)
+template <typename T, std::size_t N>
+DataServer<T, N>::DataServer(int port, BufferSystem<T, N>* buffer_system) : TCPServer(port)
 {
+    buffer_system_ = buffer_system;
+}
 
+template <typename T, std::size_t N>
+void DataServer<T, N>::mainLoop(int client_fd)
+{
+    while (running_)
+    {
+        T target = buffer_system_->popStart();
+        sendData(client_fd, target);
+        buffer_system_->popFinish();
+    }
 }
 
 

@@ -5,6 +5,7 @@ from messsagetypes import MessageType
 
 from settings import Settings
 import threading
+import struct
 
 settings = Settings()
 
@@ -22,6 +23,9 @@ def data_loop():
 t = threading.Thread(target=data_loop)
 t.start()
 
+test_exposure = 12345
+test_gain = 2.3
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((settings.address, settings.control_port))
     while True:
@@ -37,8 +41,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print("Not a number")
             continue
 
-        # Send the number
         b = bytes([n])
+
+        match n:
+            case 2:
+                b = b + int(test_exposure).to_bytes(8, 'little')
+            case 3:
+                b = b + struct.pack('f', test_gain)
+        # Send the number
+
         print(b)
 
         s.sendall(b)
