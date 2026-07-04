@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <stdexcept>
 
+/*
+ * Helper function for writing strings over TCP
+ */
 void write_all(int sock_fd, const std::string& msg)
 {
     size_t total_sent = 0;
